@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "SIRCell.h"
+#include <functional>
 
 class MPIHandler {
 private:
@@ -16,7 +17,8 @@ public:
     int getSize() const;
     
     // Distribute data among processes
-    std::vector<SIRCell> distributeData(const std::vector<std::vector<double>>& fullData);
+    std::vector<SIRCell> distributeData(const std::vector<std::vector<double>>& fullData,
+                                        const std::function<SIRCell(const std::vector<double>&)>& mapFunction);
     
     // Gather results from all processes
     std::vector<double> gatherResults(const std::vector<std::vector<double>>& localResults);

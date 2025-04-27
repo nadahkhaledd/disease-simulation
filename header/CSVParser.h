@@ -13,8 +13,8 @@ private:
 public:
     // Parse CSV data
     static std::vector<std::vector<double>> loadUSStateData(const std::string& filename);
-    
-    // Convert row data to SIR cell
+
+    // Map row data to SIRCell
     static SIRCell mapToSIR(const std::vector<double>& rowData);
 };
 
