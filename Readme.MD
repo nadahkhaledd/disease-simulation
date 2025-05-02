@@ -11,7 +11,8 @@ This project implements a parallel SIR (Susceptible-Infected-Recovered) model us
 │   ├── CSVParser.cpp / .h       # Parses input CSV files for initial conditions  
 │   └── main.cpp                 # Entry point; sets up simulation and runs it  
 ├── scripts/  
-│   └── sort_csv_by_states.py    # Script to preprocess and sort input CSV data by US states  
+│   ├── sort_csv_by_states.py    # Script to preprocess and sort input CSV data by US states  
+│   └── PlottingSIRModelResults.py # Script to plot the simulation results  
 ├── data/  
 │   ├── initial_conditions.csv   # Input data for the simulation  
 │   └── sorted_initial_conditions.csv # Preprocessed and sorted input data  
@@ -90,6 +91,26 @@ mpirun -np 4 ./sir_simulation [options]
 ### Notes:
 - Ensure that MPI is installed on your system (e.g., OpenMPI or MPICH).
 - Add any additional options as needed for your simulation.
+
+## 📊 Plotting the Results
+
+After running the simulation, you can visualize the results using the provided Python script. Follow these steps:
+
+1. Navigate to the `scripts` directory:
+   ```bash
+   cd scripts
+   ```
+
+2. Run the plotting script:
+   ```bash
+   python PlottingSIRModelResults.py
+   ```
+
+### Requirements:
+Ensure you have Python installed along with the required libraries (e.g., `matplotlib`, `numpy`). You can install the dependencies using:
+```bash
+pip install -r requirements.txt
+```
 
 ## 🧹 Cleaning the Project
 To clean up build artifacts (e.g., object files and the executable), run:

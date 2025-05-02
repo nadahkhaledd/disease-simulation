@@ -1,5 +1,4 @@
-<<<<<<< HEAD
 .vscode/
-=======
+.idea/
+.venv/
 *.o
->>>>>>> task/feature2

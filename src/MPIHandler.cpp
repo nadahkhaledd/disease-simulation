@@ -14,14 +14,12 @@
 #include <stdexcept>      // For runtime_error (optional)
 #include <set>            // For unique cell IDs in getDataForLocalBlocks
 
-// Constructor: Initialize MPI
 MPIHandler::MPIHandler(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 }
 
-// Destructor: Finalize MPI
 MPIHandler::~MPIHandler() {
     // Ensure MPI is finalized only if it was initialized successfully
     int finalized_flag;

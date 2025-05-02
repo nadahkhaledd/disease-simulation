@@ -1,7 +1,5 @@
-// header/GridSimulation.h
-
-#ifndef GRID_SIMULATION_H
-#define GRID_SIMULATION_H
+#ifndef GRIDSIMULATION_H
+#define GRIDSIMULATION_H
 
 #include <vector>
 #include <map>
@@ -12,8 +10,13 @@
 #include "SIRModel.h" // Ensure this path is correct and SIRModel is defined
 
 class GridSimulation {
+private:
+    std::vector<SIRCell> grid;
+    SIRModel model;
+    int rank, size;
+    std::unordered_map<int, std::vector<int>> neighborMap;
+
 public:
-    // Constructor
     GridSimulation(const SIRModel& m, int mpiRank, int mpiSize);
 
     // --- Getters and Basic Setters ---
@@ -43,19 +46,22 @@ public:
     void updateGrid();
     // Update with neighbors (used internally by runSimulation, relies on MPI data)
     void updateGridNew(); // This name might be confusing now, consider renaming or removing if unused externally
-    
+
     void setNeighborMap(const std::unordered_map<int, std::vector<int>>& map);
+
+    void initialize(const std::vector<SIRCell>& localGrid, int numProcesses);
+    static std::unordered_map<int, std::vector<int>> build2DGridNeighborMap(int rows, int cols);
+    static std::pair<int, int> calculateGridDimensions(int totalCells, int numBlocks);
     void setGhostNeighborMap(const std::unordered_map<int, std::vector<int>>& map);
-    
-    // Main MPI simulation loop performing communication and updates
+
     std::vector<std::vector<double>> runSimulation();
 
-    // --- Static Helper Methods ---
-    // Creates a map from state names (or identifiers) to cell IDs from a file
     static std::map<std::string, int> createCellsMap();
-    // Divides cells into blocks based on sorted IDs and block size
     static std::map<int, std::list<int>> divideIntoBlocks(
         const std::map<std::string, int>& cells, int blockSize);
+    static std::map<int, std::list<int>> divideIntoOptimalBlocks(
+        const std::map<std::string, int>& cells, int numProcesses);
+};
 
 
 private:

@@ -40,6 +40,15 @@ def load_simulation_data(filename):
     """
     try:
         df = pd.read_csv(filename)
+        # Ensure data is grouped by time step if the 'Process' column exists
+        if 'Process' in df.columns:
+            df = df.groupby("Time", as_index=False).mean()  # Aggregate by averaging
+
+        # Clip values to ensure they are within valid bounds
+        df["S"] = df["S"].clip(lower=0, upper=1)
+        df["I"] = df["I"].clip(lower=0, upper=1)
+        df["R"] = df["R"].clip(lower=0, upper=1)
+
         return df
     except FileNotFoundError:
         print(f"Error: Could not find file {filename}")

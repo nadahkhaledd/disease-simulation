@@ -1,7 +1,7 @@
 #include <mpi.h>
 #include "header/MPIHandler.h"
 #include "header/SIRModel.h"
-#include "header/CSVParser.h" // Keep for Rank 0 loading
+#include "header/CSVParser.h"
 #include "header/GridSimulation.h"
 #include <iostream>
 #include <map>
@@ -116,7 +116,14 @@ int main(int argc, char *argv[])
     const int blockSize = 4;
     MPIHandler mpi(argc, argv);
 
-    // --- Rank 0 Loads Initial Data and Structures ---
+    if (argc < 1) {
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
+    // Create SIR model
+    SIRModel model(0.3, 0.1, 0.2, 100);
+
+    // Load data and distribute it
     std::vector<std::vector<double>> fullData;
     std::map<int, std::list<int>> allBlocks;
     std::map<std::string, int> cells;
@@ -126,56 +133,11 @@ int main(int argc, char *argv[])
     if (mpi.getRank() == 0)
     {
         fullData = CSVParser::loadUSStateData("./data/sorted_initial_conditions.csv");
-        std::cout << "Rank 0: Total rows loaded from dataset: " << fullData.size() << "\n";
-        if (fullData.empty())
-        {
-            std::cerr << "Rank 0 Error: Failed to load initial data. Aborting." << std::endl;
-            MPI_Abort(MPI_COMM_WORLD, 1);
-        }
+    }
 
-        cells = GridSimulation::createCellsMap();
-        allBlocks = GridSimulation::divideIntoBlocks(cells, blockSize);
-
-        for (const auto &[blockId, cellList] : allBlocks)
-        {
-            for (int cell : cellList)
-            {
-                cellToBlock[cell] = blockId;
-            }
-        }
-
-        // Debug print blocks
-        for (const auto &[blockId, cellList] : allBlocks)
-        {
-            std::cout << "Block " << blockId << ": ";
-            for (int cell : cellList)
-            {
-                std::cout << cell << " ";
-            }
-            std::cout << "\n";
-        }
-
-        int rows = 8;
-        int cols = 8; // Grid dimensions for neighbor calculation
-        // Use the restored function with arguments
-        std::unordered_map<int, std::vector<int>> ghostNeighborMapUnused;
-
-        auto cellNeighborMapForBlocks = build2DGridNeighborMap(rows, cols, cellToBlock, ghostNeighborMapUnused);
-
-        if (!ghostNeighborMapUnused.empty()) {
-            std::cout << "Rank " << mpi.getRank() << " Ghost Neighbors:\n";
-            for (const auto& [cellId, ghosts] : ghostNeighborMapUnused) {
-                std::cout << "  Cell " << cellId << " has ghost neighbors: ";
-                for (int ghost : ghosts) std::cout << ghost << " ";
-                std::cout << "\n";
-            }
-        } else {
-            std::cout << "Rank " << mpi.getRank() << " No ghost neighbors found.\n";
-        }
-        
-        // Use the restored function with arguments
-        blockNeighborMap = buildBlockNeighborMap(allBlocks, cellNeighborMapForBlocks);
-
+    std::vector<SIRCell> localGrid = mpi.distributeData(fullData, [](const std::vector<double>& rowData) {
+        return CSVParser::mapToSIR(rowData); // Call static method from CSVParser
+    });
         // Debug print block neighbors
         for (const auto &[blockId, neighborBlocks] : blockNeighborMap)
         {
@@ -188,23 +150,11 @@ int main(int argc, char *argv[])
         }
     }
 
-    // --- Distribute Block Structure and Necessary Data ---
-    std::map<int, std::list<int>> localBlocks = mpi.distributeBlocks(allBlocks);
-    std::map<int, std::vector<double>> localCellData = mpi.getDataForLocalBlocks(localBlocks, fullData);
-    blockNeighborMap = mpi.broadcastBlockNeighborMap(blockNeighborMap);
-
-    // --- Setup Simulation ---
-    SIRModel model(0.3, 0.1, 0.2, 100);
+    // Create and configure simulation
     GridSimulation simulation(model, mpi.getRank(), mpi.getSize());
+    simulation.initialize(localGrid, mpi.getSize());
 
-    int rows = 8;
-    int cols = 8; // Ensure consistency
-    std::unordered_map<int, std::vector<int>> ghostNeighborMap;
-    auto cellNeighborMap = build2DGridNeighborMap(rows, cols, cellToBlock, ghostNeighborMap);
-
-    simulation.setCellNeighborMap(cellNeighborMap);
-    simulation.setGhostNeighborMap(ghostNeighborMap);
-
+    // Run the simulation
     // Create and broadcast blockToRankMap
     std::unordered_map<int, int> blockToRankMap;
     if (mpi.getRank() == 0)
@@ -265,6 +215,12 @@ int main(int argc, char *argv[])
     std::vector<double> globalResults = mpi.gatherResults(localResults);
     int numLocalSteps = localResults.size();
     mpi.writeResults(globalResults, numLocalSteps);
+
+    // Gather and write results
+    std::vector<double> globalFlatResults = mpi.gatherResults(localResults);
+    if (mpi.getRank() == 0) {
+        mpi.writeResults(globalFlatResults, localResults.size());
+    }
 
     return 0;
 }

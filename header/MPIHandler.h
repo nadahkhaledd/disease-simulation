@@ -1,7 +1,5 @@
-// header/MPIHandler.h
-
-#ifndef MPI_HANDLER_H
-#define MPI_HANDLER_H
+#ifndef MPIHANDLER_H
+#define MPIHANDLER_H
 
 #include <vector>         // For std::vector
 #include <map>            // For std::map
@@ -12,6 +10,9 @@
 // Forward declare classes used in function signatures if their full definition
 // isn't required within this header file itself. This can help reduce compile times.
 class SIRCell;
+#include <vector>
+#include "SIRCell.h"
+#include <functional>
 
 class MPIHandler {
 public:
@@ -24,7 +25,6 @@ public:
     // --- Getters ---
     // Returns the MPI rank (ID) of the current process.
     int getRank() const;
-    // Returns the total number of MPI processes in the communicator.
     int getSize() const;
 
     // --- MPI Communication / Data Handling Methods ---
@@ -35,6 +35,12 @@ public:
 
     // Gathers simulation results (e.g., [time, avgS, avgI, avgR]) from all processes
     // onto Rank 0. Uses MPI_Gatherv for potentially variable data sizes per rank.
+
+    // Distribute data among processes
+    std::vector<SIRCell> distributeData(const std::vector<std::vector<double>>& fullData,
+                                        const std::function<SIRCell(const std::vector<double>&)>& mapFunction);
+
+    // Gather results from all processes
     std::vector<double> gatherResults(const std::vector<std::vector<double>>& localResults);
 
     // Writes the globally gathered simulation results to a CSV file.

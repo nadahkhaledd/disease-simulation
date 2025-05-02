@@ -45,13 +45,16 @@ with open(input_file, "r") as infile:
 # Filter rows to include only valid US states
 filtered_rows = [row for row in rows if row[0] in us_states]
 
-# Create a mapping of state to row
-state_to_row = {row[0]: row for row in filtered_rows}  # Assuming the first column is the state name
+# Adjust column indices to match the correct structure
+# Province_State, Population, Date, Lat, Long, Confirmed, Deaths, Recovered, Active
+state_to_row = {row[0]: row for row in filtered_rows}  # Province_State is the first column
 
-# Sort the rows based on the geographical order
+# Dynamically determine the number of blocks based on the dataset size
+num_rows = len(rows)
+num_blocks = max(1, num_rows // 100)  # Example heuristic: 100 rows per block
+
+# Sort the rows based on the geographical order or other criteria
 sorted_rows = [state_to_row[state] for state in state_order if state in state_to_row]
-
-# Add any missing states (not in the geographical grid) to the end of the sorted list
 remaining_states = [row for row in filtered_rows if row[0] not in state_order]
 sorted_rows.extend(remaining_states)
 
@@ -62,3 +65,4 @@ with open(output_file, "w", newline="") as outfile:
     writer.writerows(sorted_rows)  # Write the sorted rows
 
 print(f"Sorted CSV file saved to {output_file}")
+print(f"Dataset divided into {num_blocks} blocks.")
